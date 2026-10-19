@@ -32,7 +32,9 @@ router = APIRouter(prefix="/vapi", tags=["vapi"])
 
 
 def _verify_secret(provided: str | None) -> None:
-    if settings.vapi_secret and not hmac.compare_digest(provided or "", settings.vapi_secret):
+    # Vapi's custom credential may send "Bearer <secret>" if the prefix toggle is on.
+    token = (provided or "").strip().removeprefix("Bearer ").strip()
+    if settings.vapi_secret and not hmac.compare_digest(token, settings.vapi_secret):
         raise ApiError(401, "unauthorized", "Invalid or missing X-Vapi-Secret header")
 
 

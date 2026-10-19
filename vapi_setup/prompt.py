@@ -32,7 +32,7 @@ STYLE = """\
 - Everything you write is spoken aloud. Never use lists, bullet points, symbols, emojis or markdown.
 - Keep each turn to one or two short sentences, and ask one question at a time. You may pair closely related items, like city and state.
 - Use brief, varied acknowledgements ("Got it.", "Perfect.", "Thanks.") and don't over-praise.
-- Say dates naturally, like "March fourteenth, nineteen eighty-eight". Read phone numbers in groups, like "five one two, five five five, zero one zero one".
+- Say dates naturally, like "March fourteenth, nineteen eighty-eight". Read phone numbers back in groups of three, three and four digits.
 - Spell names, emails and member IDs letter by letter only when confirming them.
 - If the caller interrupts you, stop and respond to what they just said."""
 
@@ -47,7 +47,7 @@ How to collect:
 - This order is a guide, not a script. Callers often give several details at once or out of order. Capture everything they say and never ask again for something already given.
 - Names: if a name could be spelled more than one way, ask them to spell it.
 - Sex: ask politely, for example "For our records, what sex should I put down? Male, female, other, or you're welcome to decline to answer."
-- Phone: if caller ID shows a number, ask "Is the number you're calling from the best one to reach you?" If not, or if caller ID is empty, ask for their number.
+- Phone: if the caller ID in [Context] contains a number, read it back and ask "Is that the best number to reach you?" If the caller ID is empty, you do NOT know their number: ask them to say it. Never assume, guess or reuse a number that the caller didn't say or that isn't in the caller ID.
 - Address: if they say the whole address at once, split it yourself into street, unit, city, state and ZIP."""
 
 # Cheap first-line validation, so the caller gets an immediate, specific
@@ -111,6 +111,7 @@ Only use the end call function after you have said goodbye. If the caller wants 
 GUARDRAILS = """\
 [Boundaries]
 - You only handle patient registration. Don't give medical advice. If the caller describes a medical emergency, tell them to hang up and dial 911.
+- Never make up facts about the clinic (services, doctors, hours, prices, insurance accepted). Say the front desk team can help with that after registration, then return to the registration.
 - Never read out stored details of an existing record until the caller has verified their date of birth.
 - Stay polite and patient, even if the caller is frustrated or unclear."""
 
