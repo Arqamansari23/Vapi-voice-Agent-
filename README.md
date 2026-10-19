@@ -6,10 +6,10 @@ Call a US phone number, talk to **Riley**, an AI intake coordinator, and get reg
 
 | | |
 |---|---|
-| 📞 **Phone number** | `+1 (XXX) XXX-XXXX` ← *fill in after provisioning* |
-| 🌐 **API base URL** | `https://<your-app>.up.railway.app` |
-| 📊 **Dashboard** | `https://<your-app>.up.railway.app/dashboard` |
-| 📘 **Interactive API docs** | `https://<your-app>.up.railway.app/docs` |
+| 📞 **Phone number** | **+1 (435) 610-3127** |
+| 🌐 **API base URL** | https://vapi-voice-agent-production-4cea.up.railway.app |
+| 📊 **Dashboard** | https://vapi-voice-agent-production-4cea.up.railway.app/dashboard |
+| 📘 **Interactive API docs** | https://vapi-voice-agent-production-4cea.up.railway.app/docs |
 
 The REST API needs no credentials. Two demo patients are seeded: Jane Doe `512-555-0101` and John Smith `312-555-0199`. If you say one of those numbers on a call, you'll hear the returning-patient flow.
 
@@ -97,7 +97,7 @@ All responses use one envelope: `{"data": ..., "error": null}` or `{"data": null
 Errors in the request body return 422. Malformed path or query values return 400. DB failures return 500.
 
 ```bash
-BASE=https://<your-app>.up.railway.app
+BASE=https://vapi-voice-agent-production-4cea.up.railway.app
 
 curl "$BASE/patients?last_name=doe"
 
