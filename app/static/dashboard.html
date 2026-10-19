@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patient Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5f6b7a;
+      --border: #e2e6ea; --accent: #2563eb; --row-hover: #f1f5fd; --chip: #eef2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1216; --surface: #171b21; --text: #e6e9ee; --muted: #98a2b3;
+        --border: #2a3039; --accent: #6b9bff; --row-hover: #1d2430; --chip: #232a34;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+           font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    header { padding: 24px 16px 8px; max-width: 1200px; margin: 0 auto; }
+    h1 { margin: 0; font-size: 22px; }
+    .sub { color: var(--muted); margin-top: 4px; }
+    main { max-width: 1200px; margin: 0 auto; padding: 8px 16px 40px; }
+    .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0 16px; }
+    input[type=search] { flex: 1 1 260px; padding: 9px 12px; border: 1px solid var(--border);
+                         border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+    button { padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px;
+             background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    .stat { color: var(--muted); }
+    .stat b { color: var(--text); font-size: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--row-hover); }
+    tr.detail { cursor: default; }
+    tr.detail:hover { background: transparent; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 20px; padding: 4px 0; }
+    .grid div span { display: block; font-size: 12px; color: var(--muted); }
+    .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); font-size: 12px; }
+    .empty, .error { padding: 32px; text-align: center; color: var(--muted); }
+    .error { color: #d14343; }
+    code { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Registered Patients</h1>
+    <div class="sub">Live view of records created by the voice agent and the REST API. Refreshes every 10 seconds.</div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search by name, phone, city or state" aria-label="Search patients">
+      <button id="refresh" type="button">Refresh</button>
+      <div class="stat"><b id="count">0</b> patients &middot; updated <span id="updated">never</span></div>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Date of birth</th><th>Sex</th><th>Phone</th><th>City / State</th><th>Insurance</th><th>Registered</th></tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty">Loading&hellip;</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const rowsEl = document.getElementById("rows");
+    const searchEl = document.getElementById("search");
+    let patients = [];
+    let openId = null;
+
+    const fmtPhone = (p) => p && p.length === 10 ? `(${p.slice(0, 3)}) ${p.slice(3, 6)}-${p.slice(6)}` : (p || "");
+    const fmtTime = (iso) => iso ? new Date(iso).toLocaleString() : "";
+
+    // Build DOM nodes with textContent only, so stored values can never inject HTML.
+    function el(tag, text, cls) {
+      const node = document.createElement(tag);
+      if (text !== undefined && text !== null) node.textContent = text;
+      if (cls) node.className = cls;
+      return node;
+    }
+
+    function detailRow(p) {
+      const tr = el("tr", null, "detail");
+      const td = el("td");
+      td.colSpan = 7;
+      const grid = el("div", null, "grid");
+      const fields = [
+        ["Patient ID", p.patient_id], ["Email", p.email],
+        ["Address", [p.address_line_1, p.address_line_2].filter(Boolean).join(", ")],
+        ["City / State / ZIP", `${p.city}, ${p.state} ${p.zip_code}`],
+        ["Insurance provider", p.insurance_provider], ["Member ID", p.insurance_member_id],
+        ["Preferred language", p.preferred_language],
+        ["Emergency contact", p.emergency_contact_name],
+        ["Emergency phone", fmtPhone(p.emergency_contact_phone)],
+        ["Created (UTC)", p.created_at], ["Updated (UTC)", p.updated_at],
+      ];
+      for (const [label, value] of fields) {
+        const cell = el("div", value || "—");
+        cell.prepend(el("span", label));
+        grid.append(cell);
+      }
+      td.append(grid);
+      tr.append(td);
+      return tr;
+    }
+
+    function render() {
+      const q = searchEl.value.trim().toLowerCase();
+      const qDigits = q.replace(/\D/g, "");
+      const visible = patients.filter((p) => {
+        if (!q) return true;
+        const hay = `${p.first_name} ${p.last_name} ${p.city} ${p.state} ${p.email || ""}`.toLowerCase();
+        return hay.includes(q) || (qDigits.length >= 3 && p.phone_number.includes(qDigits));
+      });
+
+      document.getElementById("count").textContent = visible.length;
+      rowsEl.replaceChildren();
+      if (!visible.length) {
+        const tr = el("tr");
+        const td = el("td", patients.length ? "No patients match your search." : "No patients registered yet.", "empty");
+        td.colSpan = 7;
+        tr.append(td);
+        rowsEl.append(tr);
+        return;
+      }
+      for (const p of visible) {
+        const tr = el("tr");
+        tr.append(
+          el("td", `${p.first_name} ${p.last_name}`),
+          el("td", p.date_of_birth),
+          el("td", p.sex),
+          el("td", fmtPhone(p.phone_number)),
+          el("td", `${p.city}, ${p.state}`),
+          el("td", p.insurance_provider || ""),
+          el("td", fmtTime(p.created_at)),
+        );
+        tr.addEventListener("click", () => {
+          openId = openId === p.patient_id ? null : p.patient_id;
+          render();
+        });
+        rowsEl.append(tr);
+        if (openId === p.patient_id) rowsEl.append(detailRow(p));
+      }
+    }
+
+    async function load() {
+      try {
+        const res = await fetch("/patients", { headers: { Accept: "application/json" } });
+        const body = await res.json();
+        if (!res.ok || body.error) throw new Error(body.error ? body.error.message : res.statusText);
+        patients = body.data;
+        document.getElementById("updated").textContent = new Date().toLocaleTimeString();
+        render();
+      } catch (err) {
+        rowsEl.replaceChildren();
+        const tr = el("tr");
+        const td = el("td", `Could not load patients: ${err.message}`, "error");
+        td.colSpan = 7;
+        tr.append(td);
+        rowsEl.append(tr);
+      }
+    }
+
+    searchEl.addEventListener("input", render);
+    document.getElementById("refresh").addEventListener("click", load);
+    load();
+    setInterval(load, 10000);
+  </script>
+</body>
+</html>

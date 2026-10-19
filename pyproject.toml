@@ -1,0 +1,15 @@
+[project]
+name = "vapi-voice-agent"
+version = "1.0.0"
+description = "Voice AI patient registration agent (Vapi + FastAPI + PostgreSQL)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.118",
+    "uvicorn[standard]>=0.37",
+    "sqlalchemy>=2.0.43",
+    "psycopg[binary]>=3.2.10",
+    "pydantic[email]>=2.12",
+    "python-dotenv>=1.1",
+    "httpx>=0.28",
+]
